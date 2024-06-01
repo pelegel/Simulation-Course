@@ -1,0 +1,128 @@
+---
+title: "arrival distribution from excel"
+author: "318356995 , 207133109 , 318359726"
+date: "12/17/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE, error=TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+
+library(rlang)
+library(MASS)
+library(fitdistrplus)
+library(magrittr)
+library(dplyr)
+library(lazyeval)
+#library(parallel) -because package couldnt be installed
+library(e1071)
+library(plotly)
+library(ggplot2)
+library(triangle)
+library(sqldf)
+library(readxl)
+library(knitr)
+library(rmarkdown)
+library(simmer)
+library(simmer.plot)
+
+
+
+path <- choose.files()
+table <- read.csv(path, TRUE)
+table<-table[1:50,1:2]
+menArrivals <- c(table[,1])
+womenArrivals <- c(table[,2])
+
+
+
+library(chron)
+menTime <- format(strptime(menArrivals, "%I:%M:%S"), format="%H:%M:%S")
+menArrivalsTimeVec <- 60 *24* as.numeric(times(menTime))
+
+womenTime <- format(strptime(womenArrivals, "%I:%M:%S"), format="%H:%M:%S")
+womenArrivalsTimeVec <- 60 *24* as.numeric(times(womenTime))
+
+vecForDifferencesMen <- c()
+for (i in 1:(length(menArrivalsTimeVec)-1)) {
+vecForDifferencesMen[i] = menArrivalsTimeVec[i+1]-menArrivalsTimeVec[i]
+}
+
+vecForDifferencesWomen <- c()
+for (i in 1:(length(womenArrivalsTimeVec)-1)) {
+vecForDifferencesWomen[i] = womenArrivalsTimeVec[i+1]-womenArrivalsTimeVec[i]
+}
+
+
+```
+
+
+
+
+## 2. First Impressions 
+Issue some charts in order to estimate Which distributions we should check later on.
+```{r empirical plots}
+par(mfrow=c(1,3)) # defines 3 plots on the same window
+plot(vecForDifferencesMen,ylab="Data") # plot ( left graph )
+hist(vecForDifferencesMen, ylab="Data") # histogram (right graph)
+boxplot(vecForDifferencesMen)
+
+par(mfrow=c(1,3)) # defines 3 plots on the same window
+plot(vecForDifferencesWomen,ylab="Data") # plot ( left graph )
+hist(vecForDifferencesWomen, ylab="Data") # histogram (right graph)
+boxplot(vecForDifferencesWomen)
+
+```
+
+## 3. Fit a known distribution 
+After figuring out that the dist might be either Normal or Exp, we compared those distributions by likelihood, AIC and BIC. We found out that the exp dist gets lower AIC&BIC and higher loglikelihood. Therefore we determine that the correct dist would be exp.
+
+```{r Checking whether norm or exp}
+
+normFit<-fitdist(vecForDifferencesMen,"norm")
+expFit <- fitdist(vecForDifferencesMen,"exp") # fitting an exp distribution 
+summary(expFit) # summary function displays the results 
+summary(normFit)
+#exp dist suits better because it presents lower AIC&BIC values
+
+normFit2<-fitdist(vecForDifferencesWomen,"norm")
+expFit2 <- fitdist(vecForDifferencesWomen,"exp") # fitting an exp distribution
+summary(expFit2) # summary function displays the results 
+summary(normFit2)
+#exp dist suits better because it presents lower AIC&BIC values
+
+```
+
+
+
+## 5. View the values on some charts of exp distribution
+```{r compare data to exp}
+plotdist(vecForDifferencesMen,"exp",para=list(rate=expFit$estimate[1]))
+plotdist(vecForDifferencesMen,"norm",para=list(mean=normFit$estimate[1],sd=normFit$estimate[2]))
+
+
+plotdist(vecForDifferencesWomen,"exp",para=list(rate=expFit2$estimate[1]))
+plotdist(vecForDifferencesWomen,"norm",para=list(mean=normFit$estimate[1],sd=normFit$estimate[2]))
+
+#both seems to be exp
+```
+
+
+## 6. Perform Goodness of Fit tests on fitted distribution
+  for both vectors:
+  the statistical significance 0.05 because that is the default value
+  We can see that we wouldn't reject H0 by looking at the P-val=the min alpha for rejection
+  
+```{r test alpha}
+expgof<- gofstat(expFit)%>%print()
+expgof$kstest%>%print()
+expgof2<- gofstat(expFit2)%>%print()
+expgof2$kstest%>%print()
+ 
+normgof<- gofstat(normFit)%>%print()
+normgof$kstest%>%print()
+normgof2<- gofstat(normFit2)%>%print()
+normgof2$kstest%>%print()
+ 
+```
+
