@@ -1,0 +1,51 @@
+---
+title: "Group 23"
+author: "318356995 , 207133109 , 318359726"
+date: "12/4/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fitdistrplus)
+library(magrittr)
+```
+
+
+```{r 1, echo=FALSE}
+filePath=choose.files() 
+table<-read.csv(filePath,header=TRUE)
+Data<-table[,1]
+Data<-Data[1:50]
+```
+
+Checking the data, first impression:
+```{r 2 , echo=FALSE}
+par(mfrow=c(1,3)) # defines 2 plots on the same window
+plot(Data,ylab="Sample values") # plot ( left graph )
+hist(Data, ylab="Frequency ") # histogram (right graph)
+boxplot(Data)
+```
+
+
+now, we will try estimating the parameters of a normal(mean and sd) & exponential(lambda) distribution. 
+The fitting for exponential distribution will fail because we have impossible values - negatives.
+```{r fitting norm}
+normFit<-fitdist(Data,"norm") # fitting a normal distrbution 
+summary(normFit) # summary function displays the results 
+#expFit<-fitdist(Data,"exp") # fitting an expo distrbution 
+#summary(expFit)
+```
+
+
+now we will show the graphs for normal distribution - Desnsity, CDF, QQ-Plot, PP-Plot
+```{r}
+plotdist(Data,"norm",para=list(mean=normFit$estimate[1], sd=normFit$estimate[2] ) )
+```
+now, we will check if the data is fitted from a normal distribution with estimate mean and sd that we got from the last chunk. by applying the K-S test, we will get:
+```{r 5 ,echo=FALSE}
+normgof<- gofstat(normFit)%>%print()
+normgof$kstest%>%print()
+```
+from the output, we got:
+"not rejected" H0. so we can say now that the data is fitted from a normal distribution.
